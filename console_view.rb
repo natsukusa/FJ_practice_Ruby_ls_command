@@ -7,13 +7,13 @@ class ConsoleView
     make_formatted_list(array, @max_file_length)
     make_final_view_list(@formatted_list, @number_of_rows)
   end
-  
+
   # TODO 合計値の表示
   # puts "total #{block_sum}"
 
   # nlink と size の表示幅の変数が必要
   def print_detail(file_data)
-    puts sprintf('%{ftype}%{mode}  %<nlink>2d %{owner}  %{group} %<size>5d %{mtime} %{file}',
+    puts sprintf('%{ftype}%{mode}  %<nlink>2d %<owner>5s  %{group} %<size>5d %{mtime} %{file}',
        file_data.instans_to_h)
   end
 

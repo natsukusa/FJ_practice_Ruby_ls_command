@@ -1,71 +1,114 @@
 require 'etc'
 
-class DemandInfo
-  def self.setup(argv_option, dir_path)
-    @dir_path = dir_path
-    file_names = make_file_name_list(argv_option, dir_path)
-    file_names.sort!
-    file_names.reverse! if argv_option[:reverse]
+module Argv
+  @path = []
+  @name = []
+  @option = {}
+  class << self
+    attr_accessor :path, :name, :option
+  end
+end
 
-    if argv_option[:list]
-      p 'under construction!'
-      # file_names = make_file_name_list(argv_option, dir_path)
-      @file_details = make_instans(file_names)
-      @file_details.each do |file_data| 
-        file_data.apend_info(file_data)
-      end
-
-      # nlink と size の表示幅を計算するメソッドが必要
-      @file_details.each do |file_data| 
-        ConsoleView.new.print_detail(file_data)
-      end
-      
-      block_sum
-      # make_detail_array
-    else
-      # file_names = make_file_name_list(argv_option, dir_path)
-      ConsoleView.new.display_file_name_list(file_names)
+class WithListOption
+  def self.setup
+    if Argv.name.size > 0
+      file_details = make_instans(sort_and_reverse(Argv.name))
+      file_details.each { |file_data| file_data.apend_info(file_data) }
+      file_details.each { |file_data| ConsoleView.new.print_detail(file_data) }
     end
+    # p 'under construction!'
+    # if 
+      Argv.path.size > 0 ? dir_paths = Argv.path.sort : dir_paths = [Dir.pwd]
+      dir_paths.each do |path|
+        @file_details = make_instans(sort_and_reverse(make_file_name_list(path)))
+        @file_details.each do |file_data| 
+          file_data.apend_info(file_data)
+        end
+        puts
+        puts "#{path}:" if Argv.path.size > 0
+        puts "total: #{block_sum}"
+        @file_details.each do |file_data| 
+          ConsoleView.new.print_detail(file_data)
+        end
+      end 
+
+    # end
+    
+    # nlink と size の表示幅を計算するメソッドが必要
+    # @file_details.each do |file_data| 
+    #   ConsoleView.new.print_detail(file_data)
+    # end
+    
+    
+
+    # make_detail_array
+
   end
 
-  def self.file_details # テスト用
-    p @file_details
-  end
 
   def self.make_instans(file_names)
     file_names.map { |file| FileData.new(file) }
   end
 
-  def self.make_file_name_list(argv_option, dir_path)
-    Dir.chdir(dir_path)
-    argv_option[:all] ? Dir.glob('*', File::FNM_DOTMATCH) : Dir.glob('*')
+  def self.make_file_name_list(path)
+    Dir.chdir(path)
+    Argv.option[:all] ? Dir.glob('*', File::FNM_DOTMATCH) : Dir.glob('*')
   end
 
   def self.block_sum
     @file_details.inject(0) { |result, file_data| result + file_data.blocks }
   end
 
-  # def self.make_detail_array # インスタンスに含まれる変数の一覧取得
-  #   p @file_details.map(&:instance_variables)
-  # end
+  def self.sort_and_reverse(array)
+    Argv.option[:reverse] ? array.sort.reverse : array.sort
+  end
+
+  def self.get_name_list
+    Argv.option[:all] ? Dir.glob('*', File::FNM_DOTMATCH) : Dir.glob('*')
+  end
 end
 
-class FileData
-  # DIR_PATH = DemandInfo.path_name
-  
-  # def self.dir_path
-  #   @@dir_path = DemandInfo.path_name
-  # end
+class NonListOption
+  def self.setup
+    if Argv.name.size > 0
+      file_names = Argv.name
+      ConsoleView.new.display_file_name_list(sort_and_reverse(file_names))
+    end
+    if Argv.path.size > 0
+      dir_paths = Argv.path
+      final_name_list(dir_paths.sort!)
+    end
+      normal_name_list if Argv.name.size == 0 && Argv.path.size == 0
+  end
 
-  attr_accessor :file
-  attr_accessor :ftype
-  attr_accessor :mode
-  attr_accessor :nlink
-  attr_accessor :owner
-  attr_accessor :group
-  attr_accessor :size
-  attr_accessor :mtime
-  attr_accessor :blocks
+  def self.normal_name_list
+      Dir.chdir(Dir.pwd)
+      ConsoleView.new.display_file_name_list(sort_and_reverse(get_name_list))
+  end
+
+  def self.final_name_list(dir_paths)
+    dir_paths.each do |path|
+      puts
+      puts  "#{path}:"
+      Dir.chdir(path)
+      ConsoleView.new.display_file_name_list(sort_and_reverse(get_name_list))
+      end
+  end
+
+  def self.get_name_list
+    Argv.option[:all] ? Dir.glob('*', File::FNM_DOTMATCH) : Dir.glob('*')
+  end
+
+  def self.sort_and_reverse(array)
+    Argv.option[:reverse] ? array.sort.reverse : array.sort
+  end
+end
+
+
+
+
+class FileData
+  attr_accessor :file, :ftype, :mode, :nlink, :owner, :group, :size, :mtime, :blocks
   
   def initialize(file)
     @file = file
@@ -91,7 +134,7 @@ class FileData
   end
 
   def fill_ftype
-    hash = {'directory'=>'d', 'link'=>'l', 'file'=>'-' }
+    hash = { 'blockSpecial'=>'b', 'characterSpecial'=>'c', 'directory'=>'d', 'link'=>'l', 'socket'=>'s', 'fifo'=>'p','file'=>'-' }
     self.ftype = File.ftype(self.file).gsub(/[a-z]+/, hash)  
   end
 
