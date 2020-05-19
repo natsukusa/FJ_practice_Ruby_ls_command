@@ -5,7 +5,7 @@ module Ls
   load './console_view.rb'
 
   class LsCommandUser
-    attr_accessor :argv_option, :dir_path
+    # attr_accessor :argv_option, :dir_path
 
     def generate(argv_option, argv)
       argv.each do |value|
@@ -15,21 +15,15 @@ module Ls
           Argv.path << value
         else
           warning(value)
-          exit
         end
       end
       Argv.option = argv_option
-
-      # p Argv.name
-      # p Argv.path
-      # p Argv.option
-
-      # NonListOption.setup
-      WithListOption.setup
+      argv_option[:list] ? WithListOption.setup : NonListOption.setup
     end
 
     def warning(value)
       puts "ls: #{value}: No such file or directory"
+      exit
     end
   end
 
