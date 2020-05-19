@@ -1,44 +1,45 @@
+# frozen_string_literal: true
+
 module Ls
   require 'etc'
 
   module Argv
-    @path = []
-    @name = []
+    @directories = []
+    @files = []
     @option = {}
     class << self
-      attr_accessor :path, :name, :option
+      attr_accessor :directories, :files, :option
 
-      def name?
-        Argv.name.size.positive?
+      def files?
+        Argv.files.size.positive?
       end
 
-      def path?
-        Argv.path.size.positive?
+      def directories?
+        Argv.directories.size.positive?
+      end
+
+      def both_empty?
+        Argv.files.size.zero? && Argv.directories.size.zero?
       end
     end
   end
 
   class WithListOption
-
     def self.setup
-      if Argv.name?
-        file_details = make_instans(sort_and_reverse(Argv.name))
+      if Argv.files?
+        file_details = make_instans(sort_and_reverse(Argv.files))
         file_details.each { |file_data| file_data.apend_info(file_data) }
-        file_details.each { |file_data| ConsoleView.new.print_detail(file_data) }
+        file_details.each { |file_data| Viewer.new.show_detail(file_data) }
       end
-    
-      Argv.path? ? dir_paths = Argv.path.sort : dir_paths = [Dir.pwd]
-      dir_paths.each do |path|
-        @file_details = make_instans(sort_and_reverse(make_file_name_list(path)))
+
+      directories = Argv.directories? ? Argv.directories.sort : [Dir.pwd]
+
+      directories.each do |directory|
+        @file_details = make_instans(sort_and_reverse(make_file_name_list(directory)))
         @file_details.each { |file_data| file_data.apend_info(file_data) }
-
-        puts
-        puts "#{path}:" if Argv.path?
+        Viewer.new.show_directory(directory)
         puts "total: #{block_sum}"
-
-        @file_details.each do |file_data|
-          ConsoleView.new.print_detail(file_data)
-        end
+        file_details.each { |file_data| Viewer.new.show_detail(file_data) }
       end
     end
 
@@ -46,8 +47,8 @@ module Ls
       file_names.map { |file| FileData.new(file) }
     end
 
-    def self.make_file_name_list(path)
-      Dir.chdir(path)
+    def self.make_file_name_list(directory)
+      Dir.chdir(directory)
       look_up_dir
     end
 
@@ -66,28 +67,27 @@ module Ls
 
   class NonListOption
     def self.setup
-      if Argv.name?
-        file_names = Argv.name
-        ConsoleView.new.display_file_name_list(sort_and_reverse(file_names))
+      if Argv.files?
+        file_names = Argv.files
+        Viewer.new.show_name(sort_and_reverse(file_names))
       end
-      if Argv.path?
-        dir_paths = Argv.path
-        final_name_list(dir_paths.sort!)
+      if Argv.directories?
+        directories = Argv.directories
+        final_name_list(directories.sort!)
       end
-        normal_name_list if Argv.name.size.zero? && Argv.path.size.zero?
+      normal_name_list if Argv.both_empty?
     end
 
     def self.normal_name_list
       Dir.chdir(Dir.pwd)
-      ConsoleView.new.display_file_name_list(sort_and_reverse(look_up_dir))
+      Viewer.new.show_name(sort_and_reverse(look_up_dir))
     end
 
-    def self.final_name_list(dir_paths)
-      dir_paths.each do |path|
-        puts
-        puts "#{path}:"
-        Dir.chdir(path)
-        ConsoleView.new.display_file_name_list(sort_and_reverse(look_up_dir))
+    def self.final_name_list(directories)
+      directories.each do |directory|
+        Viewer.new.show_directory(directory)
+        Dir.chdir(directory)
+        Viewer.new.show_name(sort_and_reverse(look_up_dir))
       end
     end
 
@@ -103,7 +103,7 @@ module Ls
   class FileData
     attr_accessor :file, :ftype, :mode, :nlink,
                   :owner, :group, :size, :mtime, :blocks
-    
+
     def initialize(file)
       @file = file
     end
@@ -111,17 +111,15 @@ module Ls
     def apend_info(file_data)
       file_data.fill_ftype(file_data)
       file_data.fill_mode(file_data)
-      @nlink = File.lstat(file_data.file).nlink.to_s
-      @owner = Etc.getpwuid(File.lstat(file_data.file).uid).name
-      @group = Etc.getgrgid(File.lstat(file_data.file).gid).name
-      @size = File.lstat(file_data.file).size
-      @mtime = File.lstat(file_data.file).mtime.strftime("%_m %_d %H:%M")
-      @blocks = File.lstat(file_data.file).blocks.to_i
+      file_data.fill_nlink(file_data)
+      file_data.fill_owner(file_data)
+      file_data.fill_group(file_data)
+      file_data.fill_size(file_data)
+      file_data.fill_mtime(file_data)
+      file_data.fill_blocks(file_data)
     end
 
-
     def instans_to_h
-      # TODO オブジェクトの変数をハッシュで格納する。
       { ftype: @ftype, mode: @mode, nlink: @nlink, owner: @owner,
         group: @group, size: @size, mtime: @mtime, file: @file }
     end
@@ -140,10 +138,33 @@ module Ls
 
     def change_mode_style(mode)
       mode.split(//).map do |value|
-        ('%03d' % value.to_i.to_s(2)).gsub(/^1/, 'r').gsub(/1$/, 'x')
-        .gsub(/1/, 'w').gsub(/0/, '-')
+        format('%<char>03d', char: value.to_i.to_s(2))
+          .tr('^1', 'r').tr('1$', 'x').tr('1', 'w').tr('0', '-')
       end
     end
 
+    def fill_nlink(file_data)
+      @nlink = File.lstat(file_data.file).nlink.to_s
+    end
+
+    def fill_owner(file_data)
+      @owner = Etc.getpwuid(File.lstat(file_data.file).uid).name
+    end
+
+    def fill_group(file_data)
+      @gourp = Etc.getgrgid(File.lstat(file_data.file).gid).name
+    end
+
+    def fill_size(file_data)
+      @size = File.lstat(file_data.file).size
+    end
+
+    def fill_mtime(file_data)
+      @mtime = File.lstat(file_data.file).mtime.strftime('%_m %_d %H:%M')
+    end
+
+    def fill_blocks(file_data)
+      @blocks = File.lstat(file_data.file).blocks.to_i
+    end
   end
 end

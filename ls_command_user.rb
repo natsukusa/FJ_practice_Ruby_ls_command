@@ -4,21 +4,25 @@ module Ls
   load './ls_data.rb'
   load './console_view.rb'
 
-  class LsCommandUser
-    # attr_accessor :argv_option, :dir_path
+  class User
+    # attr_accessor :option, :dir_path
 
-    def generate(argv_option, argv)
+    def generate(option, argv)
+      check_argv(argv)
+      Argv.option = option
+      option[:list] ? WithListOption.setup : NonListOption.setup
+    end
+
+    def check_argv(argv)
       argv.each do |value|
         if File.file?(value)
-          Argv.name << value
+          Argv.files << value
         elsif File.directory?(value)
-          Argv.path << value
+          Argv.directories << value
         else
           warning(value)
         end
       end
-      Argv.option = argv_option
-      argv_option[:list] ? WithListOption.setup : NonListOption.setup
     end
 
     def warning(value)
@@ -39,6 +43,6 @@ module Ls
 
     opt.parse!(ARGV)
 
-    LsCommandUser.new.generate(option, ARGV)
+    User.new.generate(option, ARGV)
   end
 end

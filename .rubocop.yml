@@ -1,0 +1,15 @@
+require:
+  - rubocop-performance
+
+Performance:
+  Exclude:
+    - '**/test/**/*'
+
+Layout/LineLength:	
+  Max: 160
+
+Style/Documentation:
+  Enabled: false
+
+Style/ClassAndModuleChildren:
+  Enabled: false
