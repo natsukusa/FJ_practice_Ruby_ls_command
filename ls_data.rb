@@ -7,33 +7,41 @@ module Ls
     @option = {}
     class << self
       attr_accessor :path, :name, :option
+
+      def name?
+        Argv.name.size > 0
+      end
+      def path?
+        Argv.path.size > 0
+      end
     end
   end
 
   class WithListOption
     def self.setup
-      if Argv.name.size > 0
+      if Argv.name?
         file_details = make_instans(sort_and_reverse(Argv.name))
         file_details.each { |file_data| file_data.apend_info(file_data) }
         file_details.each { |file_data| ConsoleView.new.print_detail(file_data) }
       end
     
-      Argv.path.size > 0 ? dir_paths = Argv.path.sort : dir_paths = [Dir.pwd]
+      Argv.path? ? dir_paths = Argv.path.sort : dir_paths = [Dir.pwd]
       dir_paths.each do |path|
         @file_details = make_instans(sort_and_reverse(make_file_name_list(path)))
-        @file_details.each do |file_data|
+        @file_details.each do |file_data| 
           file_data.apend_info(file_data)
         end
 
         puts
-        puts "#{path}:" if Argv.path.size > 0
+        puts "#{path}:" if Argv.path?
         puts "total: #{block_sum}"
 
-        @file_details.each do |file_data|
+        @file_details.each do |file_data| 
           ConsoleView.new.print_detail(file_data)
         end
       end 
     end
+
 
     def self.make_instans(file_names)
       file_names.map { |file| FileData.new(file) }
@@ -59,11 +67,11 @@ module Ls
 
   class NonListOption
     def self.setup
-      if Argv.name.size > 0
+      if Argv.name?
         file_names = Argv.name
         ConsoleView.new.display_file_name_list(sort_and_reverse(file_names))
       end
-      if Argv.path.size > 0
+      if Argv.path?
         dir_paths = Argv.path
         final_name_list(dir_paths.sort!)
       end
@@ -72,7 +80,7 @@ module Ls
 
     def self.normal_name_list
       Dir.chdir(Dir.pwd)
-      ConsoleView.new.display_file_name_list(sort_and_reverse(get_name_list))
+        ConsoleView.new.display_file_name_list(sort_and_reverse(get_name_list))
     end
 
     def self.final_name_list(dir_paths)
@@ -107,12 +115,12 @@ module Ls
     def apend_info(file_data)
       file_data.fill_ftype
       file_data.fill_mode
-      file_data.fill_nlink
-      file_data.fill_owner
-      file_data.fill_group
-      file_data.fill_size
-      file_data.fill_mtime
-      file_data.fill_blocks
+      @nlink = File.lstat(file_data.file).nlink.to_s
+      @owner = Etc.getpwuid(File.lstat(file_data.file).uid).name
+      @group = Etc.getgrgid(File.lstat(file_data.file).gid).name
+      @size = File.lstat(file_data.file).size
+      @mtime = File.lstat(file_data.file).mtime.strftime("%_m %_d %H:%M")
+      @blocks = File.lstat(file_data.file).blocks.to_i
     end
 
 
@@ -138,25 +146,6 @@ module Ls
         ('%03d' % value.to_i.to_s(2)).gsub(/^1/, 'r').gsub(/1$/, 'x')
         .gsub(/1/, 'w').gsub(/0/, '-')
       end
-    end
-
-    def fill_nlink
-      self.nlink = File.lstat(self.file).nlink.to_s
-    end
-    def fill_owner
-      @owner = Etc.getpwuid(File.lstat(self.file).uid).name
-    end
-    def fill_group
-      @group = Etc.getgrgid(File.lstat(self.file).gid).name
-    end
-    def fill_size
-      @size = File.lstat(self.file).size
-    end
-    def fill_mtime
-      @mtime = File.lstat(self.file).mtime.strftime("%_m %_d %H:%M")
-    end
-    def fill_blocks
-      @blocks = File.lstat(self.file).blocks.to_i
     end
 
   end

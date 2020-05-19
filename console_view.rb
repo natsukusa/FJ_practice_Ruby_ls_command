@@ -1,8 +1,9 @@
+# frozen_string_literal: true
+
 module Ls
   require 'io/console/size'
 
   class ConsoleView
-
     def display_file_name_list(array)
       make_variables(array)
       make_formatted_list(array, @max_file_length)
@@ -10,8 +11,8 @@ module Ls
     end
 
     def print_detail(file_data)
-      puts sprintf('%{ftype}%{mode}  %<nlink>2d %<owner>5s  %{group} %<size>5d %{mtime} %{file}',
-        file_data.instans_to_h)
+      puts format('%<ftype>s%<mode>s  %<nlink>2d %<owner>5s  %<group>s %<size>5d %<mtime>s %<file>s',
+                  file_data.instans_to_h)
     end
 
     private
@@ -19,9 +20,9 @@ module Ls
     def console_width
       IO.console_size[1]
     end
-    
+
     def make_variables(array)
-      @max_file_length = array.max_by { |name| name.length }.length
+      @max_file_length = array.max_by(&:length).length
       @number_of_columns = console_width / (@max_file_length + 9)
       @number_of_rows = (array.size / @number_of_columns.to_f).ceil
     end
@@ -37,6 +38,5 @@ module Ls
       sliced_list.last << '' while sliced_list.last.size < number_of_rows
       sliced_list.transpose.each { |v| print v.join + "\n" }
     end
-
   end
 end

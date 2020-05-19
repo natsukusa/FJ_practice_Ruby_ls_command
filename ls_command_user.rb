@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Ls
   load './ls_data.rb'
   load './console_view.rb'
@@ -13,7 +15,7 @@ module Ls
           Argv.path << value
         else
           warning(value)
-          return
+          exit
         end
       end
       Argv.option = argv_option
@@ -29,11 +31,9 @@ module Ls
     def warning(value)
       puts "ls: #{value}: No such file or directory"
     end
-
   end
 
-
-  if $0 == __FILE__
+  if $PROGRAM_NAME == __FILE__
     require 'optparse'
     opt = OptionParser.new
 
@@ -44,10 +44,7 @@ module Ls
     opt.on('-r') { |v| option[:reverse] = v }
 
     opt.parse!(ARGV)
-    
+
     LsCommandUser.new.generate(option, ARGV)
   end
-
 end
-
-
