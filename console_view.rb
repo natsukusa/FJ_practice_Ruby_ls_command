@@ -7,7 +7,7 @@ module Ls
     def show_name(array)
       make_variables(array)
       make_formatted_list(array, @max_file_length)
-      make_name_view_list(@formatted_list, @number_of_rows)
+      make_name_view(@formatted_list, @number_of_rows)
     end
 
     def show_detail(file_data)
@@ -22,6 +22,7 @@ module Ls
     private
 
     def detail_data_fomat
+      # 要！ size の 5 を self.max_file_size_digit の値に変更
       '%<ftype>s%<mode>s  %<nlink>2d %<owner>5s  %<group>s %<size>5d %<mtime>s %<file>s'
     end
 
@@ -39,7 +40,7 @@ module Ls
       @formatted_list = array.map { |name| name.ljust(max_file_length + 9) }
     end
 
-    def make_name_view_list(formatted_list, number_of_rows)
+    def make_name_view(formatted_list, number_of_rows)
       sliced_list = []
       formatted_list.each_slice(number_of_rows) { |file| sliced_list << file }
       sliced_list.last << '' while sliced_list.last.size < number_of_rows

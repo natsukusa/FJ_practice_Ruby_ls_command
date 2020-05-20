@@ -32,14 +32,28 @@ module Ls
         file_details.each { |file_data| Viewer.new.show_detail(file_data) }
       end
 
-      directories = Argv.directories? ? Argv.directories.sort : [Dir.pwd]
+      # directories = Argv.directories? ? Argv.directories.sort : [Dir.pwd]
 
-      directories.each do |directory|
+      if Argv.directories?
+        directories = Argv.directories.sort
+        directories.each do |directory|
+          
+          @file_details = make_instans(sort_and_reverse(make_file_name_list(directory)))
+          @file_details.each { |file_data| file_data.apend_info(file_data) }
+          Viewer.new.show_directory(directory)
+          puts "total: #{block_sum}"
+          @file_details.each { |file_data| Viewer.new.show_detail(file_data) }
+        end
+      end
+
+      if Argv.both_empty?
+        directory = Dir.pwd
+
         @file_details = make_instans(sort_and_reverse(make_file_name_list(directory)))
         @file_details.each { |file_data| file_data.apend_info(file_data) }
-        Viewer.new.show_directory(directory)
+        Viewer.new.show_directory(directory) if Argv.directories?
         puts "total: #{block_sum}"
-        file_details.each { |file_data| Viewer.new.show_detail(file_data) }
+        @file_details.each { |file_data| Viewer.new.show_detail(file_data) }
       end
     end
 
@@ -50,6 +64,10 @@ module Ls
     def self.make_file_name_list(directory)
       Dir.chdir(directory)
       look_up_dir
+    end
+
+    def self.max_file_size_digit
+      @file_details.max_by { |x| x.size }.size.to_s.length
     end
 
     def self.block_sum
@@ -71,32 +89,44 @@ module Ls
         file_names = Argv.files
         Viewer.new.show_name(sort_and_reverse(file_names))
       end
+
       if Argv.directories?
-        directories = Argv.directories
-        final_name_list(directories.sort!)
+        directories = Argv.directories.sort
+        # final_name_list(directories)
+        directories.each do |directory|
+          Viewer.new.show_directory(directory)
+          Dir.chdir(directory)
+          Viewer.new.show_name(sort_and_reverse(look_up_dir))
+        end
       end
-      normal_name_list if Argv.both_empty?
-    end
 
-    def self.normal_name_list
-      Dir.chdir(Dir.pwd)
-      Viewer.new.show_name(sort_and_reverse(look_up_dir))
-    end
-
-    def self.final_name_list(directories)
-      directories.each do |directory|
-        Viewer.new.show_directory(directory)
+      if Argv.both_empty?
+        # normal_name_list
+        directory = Dir.pwd
         Dir.chdir(directory)
         Viewer.new.show_name(sort_and_reverse(look_up_dir))
       end
     end
 
-    def self.look_up_dir
-      Argv.option[:all] ? Dir.glob('*', File::FNM_DOTMATCH) : Dir.glob('*')
-    end
+    # def self.normal_name_list(directory)
+    #   Dir.chdir(directory)
+    #   Viewer.new.show_name(sort_and_reverse(look_up_dir))
+    # end
 
+    # def self.final_name_list(directories)
+    #   directories.each do |directory|
+    #     Viewer.new.show_directory(directory)
+    #     Dir.chdir(directory)
+    #     Viewer.new.show_name(sort_and_reverse(look_up_dir))
+    #   end
+    # end
+    
     def self.sort_and_reverse(array)
       Argv.option[:reverse] ? array.sort.reverse : array.sort
+    end
+
+    def self.look_up_dir
+      Argv.option[:all] ? Dir.glob('*', File::FNM_DOTMATCH) : Dir.glob('*')
     end
   end
 
@@ -139,7 +169,7 @@ module Ls
     def change_mode_style(mode)
       mode.split(//).map do |value|
         format('%<char>03d', char: value.to_i.to_s(2))
-          .tr('^1', 'r').tr('1$', 'x').tr('1', 'w').tr('0', '-')
+          .gsub(/^1/, 'r').gsub(/1$/, 'x').tr('1', 'w').tr('0', '-')
       end
     end
 
@@ -152,7 +182,7 @@ module Ls
     end
 
     def fill_group(file_data)
-      @gourp = Etc.getgrgid(File.lstat(file_data.file).gid).name
+      @group = Etc.getgrgid(File.lstat(file_data.file).gid).name
     end
 
     def fill_size(file_data)
