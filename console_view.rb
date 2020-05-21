@@ -10,22 +10,12 @@ module Ls
       make_name_view(@formatted_list, @number_of_rows)
     end
 
-    # def show_detail(file_data)
-    #   puts format(detail_data_fomat, file_data.instans_to_h)
-    # end
-
     def show_directory(directory)
       puts
-      puts "#{directory}:" if Argv.directories?
+      puts "#{directory}:"
     end
 
     private
-
-    # def detail_data_fomat
-    #   # 要！ size の 5 を self.max_file_size_digit の値に変更
-    #   # 要！ nlink の 2 を self.max_file_size_digit の値に変更
-    #   '%<ftype>s%<mode>s  %<nlink>2d %<owner>5s  %<group>s %<size>5d %<mtime>s %<file>s'
-    # end
 
     def console_width
       IO.console_size[1]
@@ -51,5 +41,43 @@ module Ls
 
 
 
-  
+  # class ArgvArrenger < DetailListFormatter
+  #   def setup
+  #     if Argv.files?
+  #       argv_file_on = Directory.new
+  #       argv_file_on.setup(Argv.files)
+  #       puts argv_file_on.finalize
+  #     end
+
+  #     if Argv.directories?
+  #       directories = Argv.directories.sort
+  #       directories.each do |directory|
+  #         argv_dir_on = Directory.new
+  #         argv_dir_on.setup(directory)
+  #         argv_dir_on.show_directory(directory)
+  #         puts argv_dir_on.finalize
+  #       end
+  #     end
+  #   end
+  # end
+
+
+
+  # class NonListOption < NameListFormatter
+  #   def setup
+  #     if Argv.files?
+  #       file_names = Argv.files
+  #       Viewer.new.show_name(sort_and_reverse(file_names))
+  #     end
+
+  #     if Argv.directories?
+  #       directories = Argv.directories.sort
+  #       directories.each do |directory|
+  #         Viewer.new.show_directory(directory)
+  #         Dir.chdir(directory)
+  #         Viewer.new.show_name(sort_and_reverse(look_up_dir))
+  #       end
+  #     end
+  #   end
+  # end
 end

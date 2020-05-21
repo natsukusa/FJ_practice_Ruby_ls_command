@@ -10,7 +10,13 @@ module Ls
     def generate(option, argv)
       check_argv(argv)
       Argv.option = option
-      option[:list] ? WithListOption.setup : NonListOption.setup
+      if option[:list]
+        # ArgvArrenger.new.setup unless argv.empty?
+        DetailListFormatter.new.setup #if argv.empty?
+      else
+        # NonListOption.new.setup unless argv.empty?
+        NameListFormatter.new.setup #if argv.empty?
+      end
     end
 
     def check_argv(argv)
