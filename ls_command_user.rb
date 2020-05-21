@@ -1,23 +1,21 @@
 # frozen_string_literal: true
 
 module Ls
-  load './ls_data.rb'
-  load './console_view.rb'
+  require './ls_data.rb'
+  require './console_view.rb'
 
   class User
-    # attr_accessor :option, :dir_path
-
     def generate(option, argv)
       check_argv(argv)
       Argv.option = option
       if option[:list]
-        # ArgvArrenger.new.setup unless argv.empty?
-        DetailListFormatter.new.setup #if argv.empty?
+        DetailListFormatter.new.setup
       else
-        # NonListOption.new.setup unless argv.empty?
-        NameListFormatter.new.setup #if argv.empty?
+        NameListFormatter.new.setup
       end
     end
+
+    private
 
     def check_argv(argv)
       argv.each do |value|

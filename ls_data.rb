@@ -24,7 +24,70 @@ module Ls
     end
   end
 
-  class Formatter
+  class DetailListFormatter
+    def setup
+      generate_with_argv_files if Argv.files?
+      generate_with_argv_directories if Argv.directories?
+      generate_with_non_argv if Argv.both_empty?
+    end
+
+    private
+
+    def generate_with_argv_files
+      argv_files_in_dir = Directory.new
+      argv_files_in_dir.setup(Argv.files)
+      puts argv_files_in_dir.finalize
+    end
+
+    def generate_with_argv_directories
+      directories ||= Argv.directories.sort
+      directories.each do |directory|
+        argv_dir_in_dir = Directory.new
+        argv_dir_in_dir.setup(directory)
+        argv_dir_in_dir.show_directory(directory)
+        puts "total #{argv_dir_in_dir.block_sum}"
+        puts argv_dir_in_dir.finalize
+      end
+    end
+
+    def generate_with_non_argv
+      directory ||= Dir.pwd
+      argv_empty_in_dir = Directory.new
+      argv_empty_in_dir.setup(directory)
+      puts "total #{argv_empty_in_dir.block_sum}"
+      puts argv_empty_in_dir.finalize
+    end
+  end
+
+  class NameListFormatter
+    def setup
+      generate_with_argv_files if Argv.files?
+      generate_with_argv_directories if Argv.directories?
+      generate_with_non_argv if Argv.both_empty?
+    end
+
+    private
+
+    def generate_with_argv_files
+      file_names = Argv.files
+      Viewer.new.show_name(sort_and_reverse(file_names))
+    end
+
+    def generate_with_argv_directories
+      directories = Argv.directories.sort
+      directories.each do |directory|
+        Viewer.new.show_directory(directory)
+        Dir.chdir(directory)
+        Viewer.new.show_name(sort_and_reverse(look_up_dir))
+      end
+    end
+
+    def generate_with_non_argv
+      directory = Dir.pwd
+      Dir.chdir(directory)
+      Viewer.new.show_name(sort_and_reverse(look_up_dir))
+    end
+
     def sort_and_reverse(array)
       Argv.option[:reverse] ? array.sort.reverse : array.sort
     end
@@ -34,67 +97,13 @@ module Ls
     end
   end
 
-  class DetailListFormatter < Formatter
-    def setup
-      if Argv.files?
-        argv_file_on = Directory.new
-        argv_file_on.setup(Argv.files)
-        puts argv_file_on.finalize
-      end
-
-      if Argv.directories?
-        directories = Argv.directories.sort
-        directories.each do |directory|
-          argv_dir_on = Directory.new
-          argv_dir_on.setup(directory)
-          argv_dir_on.show_directory(directory)
-          puts argv_dir_on.finalize
-        end
-      end
-
-      if Argv.both_empty?
-        directory ||= Dir.pwd
-        argv_empty_on = Directory.new
-        argv_empty_on.setup(directory)
-        puts "total #{argv_empty_on.block_sum}" unless Argv.files?
-        puts argv_empty_on.finalize
-      end
-    end
-
-  end
-
-  class NameListFormatter < Formatter
-    def setup
-      if Argv.files?
-        file_names = Argv.files
-        Viewer.new.show_name(sort_and_reverse(file_names))
-      end
-
-      if Argv.directories?
-        directories = Argv.directories.sort
-        directories.each do |directory|
-          Viewer.new.show_directory(directory)
-          Dir.chdir(directory)
-          Viewer.new.show_name(sort_and_reverse(look_up_dir))
-        end
-      end
-
-      if Argv.both_empty?
-        directory = Dir.pwd
-        Dir.chdir(directory)
-        Viewer.new.show_name(sort_and_reverse(look_up_dir))
-      end
-    end
-  end
-
   class Directory
-    attr_accessor :max_size_digit, :max_nlink_digit, :block_sum
-    
+    attr_accessor :max_size_digit, :max_nlink_digit
+
     def initialize
       @file_details = []
       @max_size_digit = max_size_digit
       @max_nlink_digit = max_nlink_digit
-      @block_sum = block_sum
     end
 
     def setup(directory)
@@ -114,7 +123,11 @@ module Ls
       @file_details.map { |file_data| show_detail(file_data) }
     end
 
+    def block_sum
+      @file_details.inject(0) { |result, file_data| result + file_data.blocks }
+    end
 
+    private
 
     def make_file_name_list(directory)
       if directory == Argv.files
@@ -130,7 +143,7 @@ module Ls
     end
 
     def update_file_data
-      @file_details.each { |file_data| file_data.apend_info(file_data) }
+      @file_details.each(&:apend_info)
     end
 
     def show_detail(file_data)
@@ -142,21 +155,16 @@ module Ls
     end
 
     def max_file_size_digit
-      @max_size_digit = @file_details.max_by { |file_data| file_data.size }.size.to_s.length
+      @max_size_digit = @file_details.max_by(&:size).size.to_s.length
     end
 
     def max_file_nlink_digit
       @max_nlink_digit = @file_details.max_by { |file_data| file_data.nlink.length }.nlink.length
     end
 
-    def block_sum
-      @block_sum = @file_details.inject(0) { |result, file_data| result + file_data.blocks }
-    end
-
     def sort_and_reverse(array)
       Argv.option[:reverse] ? array.sort.reverse : array.sort
     end
-
   end
 
   class FileData
@@ -167,7 +175,7 @@ module Ls
       @file = file
     end
 
-    def apend_info(file_data)
+    def apend_info
       fill_ftype
       fill_mode
       fill_nlink
@@ -182,6 +190,8 @@ module Ls
       { ftype: @ftype, mode: @mode, nlink: @nlink, owner: @owner,
         group: @group, size: @size, mtime: @mtime, file: @file }
     end
+
+    private
 
     def fill_ftype
       hash = { 'blockSpecial' => 'b', 'characterSpecial' => 'c',
