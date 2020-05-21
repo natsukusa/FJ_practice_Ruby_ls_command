@@ -27,9 +27,12 @@ module Ls
   class WithListOption
     def self.setup
       if Argv.files?
-        file_details = make_instans(sort_and_reverse(Argv.files))
-        file_details.each { |file_data| file_data.apend_info(file_data) }
-        file_details.each { |file_data| Viewer.new.show_detail(file_data) }
+        @file_details = make_instans(sort_and_reverse(Argv.files))
+        @file_details.each { |file_data| file_data.apend_info(file_data) }
+        max_file_size_digit
+        max_file_nlink_digit
+        # @file_details.each { |file_data| Viewer.new.show_detail(file_data) }
+        @file_details.each { |file_data| show_detail(file_data) }
       end
 
       # directories = Argv.directories? ? Argv.directories.sort : [Dir.pwd]
@@ -37,12 +40,16 @@ module Ls
       if Argv.directories?
         directories = Argv.directories.sort
         directories.each do |directory|
-          
+
           @file_details = make_instans(sort_and_reverse(make_file_name_list(directory)))
           @file_details.each { |file_data| file_data.apend_info(file_data) }
+          max_file_size_digit
+          max_file_nlink_digit
           Viewer.new.show_directory(directory)
           puts "total: #{block_sum}"
-          @file_details.each { |file_data| Viewer.new.show_detail(file_data) }
+          # p detail_data_fomat
+          # @file_details.each { |file_data| Viewer.new.show_detail(file_data) }
+          @file_details.each { |file_data| show_detail(file_data) }
         end
       end
 
@@ -51,9 +58,13 @@ module Ls
 
         @file_details = make_instans(sort_and_reverse(make_file_name_list(directory)))
         @file_details.each { |file_data| file_data.apend_info(file_data) }
+        max_file_size_digit
+        max_file_nlink_digit
         Viewer.new.show_directory(directory) if Argv.directories?
-        puts "total: #{block_sum}"
-        @file_details.each { |file_data| Viewer.new.show_detail(file_data) }
+        puts "total #{block_sum}"
+        # @file_details.each { |file_data| Viewer.new.show_detail(file_data) }
+        @file_details.each { |file_data| show_detail(file_data) }
+        # p detail_data_fomat
       end
     end
 
@@ -66,8 +77,20 @@ module Ls
       look_up_dir
     end
 
+    def self.show_detail(file_data)
+      puts format(detail_data_fomat, file_data.instans_to_h)
+    end
+
+    def self.detail_data_fomat
+      "%<ftype>s%<mode>s  %<nlink>#{@max_nlink_digit}d %<owner>5s  %<group>5s  %<size>#{@max_size_digit}d %<mtime>s %<file>s"
+    end
+
     def self.max_file_size_digit
-      @file_details.max_by { |x| x.size }.size.to_s.length
+      @max_size_digit = @file_details.max_by { |file_data| file_data.size }.size.to_s.length
+    end
+
+    def self.max_file_nlink_digit
+      @max_nlink_digit = @file_details.max_by { |file_data| file_data.nlink.length }.nlink.length
     end
 
     def self.block_sum

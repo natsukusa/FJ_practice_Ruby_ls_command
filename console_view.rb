@@ -10,9 +10,9 @@ module Ls
       make_name_view(@formatted_list, @number_of_rows)
     end
 
-    def show_detail(file_data)
-      puts format(detail_data_fomat, file_data.instans_to_h)
-    end
+    # def show_detail(file_data)
+    #   puts format(detail_data_fomat, file_data.instans_to_h)
+    # end
 
     def show_directory(directory)
       puts
@@ -21,10 +21,11 @@ module Ls
 
     private
 
-    def detail_data_fomat
-      # 要！ size の 5 を self.max_file_size_digit の値に変更
-      '%<ftype>s%<mode>s  %<nlink>2d %<owner>5s  %<group>s %<size>5d %<mtime>s %<file>s'
-    end
+    # def detail_data_fomat
+    #   # 要！ size の 5 を self.max_file_size_digit の値に変更
+    #   # 要！ nlink の 2 を self.max_file_size_digit の値に変更
+    #   '%<ftype>s%<mode>s  %<nlink>2d %<owner>5s  %<group>s %<size>5d %<mtime>s %<file>s'
+    # end
 
     def console_width
       IO.console_size[1]
@@ -32,12 +33,12 @@ module Ls
 
     def make_variables(array)
       @max_file_length = array.max_by(&:length).length
-      @number_of_columns = console_width / (@max_file_length + 9)
+      @number_of_columns = console_width / (@max_file_length + 6)
       @number_of_rows = (array.size / @number_of_columns.to_f).ceil
     end
 
     def make_formatted_list(array, max_file_length)
-      @formatted_list = array.map { |name| name.ljust(max_file_length + 9) }
+      @formatted_list = array.map { |name| name.ljust(max_file_length + 6) }
     end
 
     def make_name_view(formatted_list, number_of_rows)
@@ -47,4 +48,8 @@ module Ls
       sliced_list.transpose.each { |v| print v.join + "\n" }
     end
   end
+
+
+
+  
 end
