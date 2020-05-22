@@ -45,7 +45,8 @@ module Ls
     end
 
     def generate_with_argv_directories
-      directories ||= Argv.directories.sort
+      # directories ||= Argv.directories.sort
+      directories ||= sort_and_reverse(Argv.directories)
       directories.each do |directory|
         argv_dir_in_dir = Directory.new
         argv_dir_in_dir.setup(directory)
@@ -60,6 +61,10 @@ module Ls
       argv_empty_in_dir.setup(directory)
       @final_view.push("total #{argv_empty_in_dir.block_sum}")
       @final_view << argv_empty_in_dir.finalize
+    end
+
+    def sort_and_reverse(array)
+      Argv.option[:reverse] ? array.sort.reverse : array.sort
     end
   end
 
@@ -83,7 +88,7 @@ module Ls
     end
 
     def generate_with_argv_directories
-      directories = Argv.directories.sort
+      directories = sort_and_reverse(Argv.directories)
       directories.each do |directory|
         @final_view.push("\n") unless @final_view.empty?
         @final_view << "#{directory}:"
