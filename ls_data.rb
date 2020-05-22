@@ -47,6 +47,7 @@ module Ls
         argv_dir_in_dir.show_directory(directory)
         puts "total #{argv_dir_in_dir.block_sum}"
         puts argv_dir_in_dir.finalize
+        Dir.chdir(File.dirname(Dir.pwd))
       end
     end
 

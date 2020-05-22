@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
 require 'minitest/autorun'
-require './ls_command_user'
-# require './ls_data'
-# require './console_view'
+require './ls_user'
+require './ls_data'
+require './ls_view'
 
 class LsNormalTest < Minitest::Test
   # def setup

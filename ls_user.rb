@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
 module Ls
-  require './ls_data.rb'
-  require './console_view.rb'
+  load './ls_data.rb'
+  load './ls_view.rb'
 
   class User
     def generate(option, argv)
