@@ -25,10 +25,15 @@ module Ls
   end
 
   class DetailListFormatter
+    def initialize
+      @final_view = []
+    end
+
     def setup
       generate_with_argv_files if Argv.files?
       generate_with_argv_directories if Argv.directories?
       generate_with_non_argv if Argv.both_empty?
+      puts @final_view
     end
 
     private
@@ -36,7 +41,7 @@ module Ls
     def generate_with_argv_files
       argv_files_in_dir = Directory.new
       argv_files_in_dir.setup(Argv.files)
-      puts argv_files_in_dir.finalize
+      @final_view << argv_files_in_dir.finalize
     end
 
     def generate_with_argv_directories
@@ -44,10 +49,8 @@ module Ls
       directories.each do |directory|
         argv_dir_in_dir = Directory.new
         argv_dir_in_dir.setup(directory)
-        argv_dir_in_dir.show_directory(directory)
-        puts "total #{argv_dir_in_dir.block_sum}"
-        puts argv_dir_in_dir.finalize
-        Dir.chdir(File.dirname(Dir.pwd))
+        @final_view.push("\n") unless @final_view.empty?
+        @final_view << argv_dir_in_dir.finalize_at_argv_directories(directory)
       end
     end
 
@@ -55,38 +58,44 @@ module Ls
       directory ||= Dir.pwd
       argv_empty_in_dir = Directory.new
       argv_empty_in_dir.setup(directory)
-      puts "total #{argv_empty_in_dir.block_sum}"
-      puts argv_empty_in_dir.finalize
+      @final_view.push("total #{argv_empty_in_dir.block_sum}")
+      @final_view << argv_empty_in_dir.finalize
     end
   end
 
   class NameListFormatter
+    def initialize
+      @final_view = []
+    end
+
     def setup
       generate_with_argv_files if Argv.files?
       generate_with_argv_directories if Argv.directories?
       generate_with_non_argv if Argv.both_empty?
+      puts @final_view
     end
 
     private
 
     def generate_with_argv_files
       file_names = Argv.files
-      Viewer.new.show_name(sort_and_reverse(file_names))
+      @final_view << Viewer.new.show_name(sort_and_reverse(file_names))
     end
 
     def generate_with_argv_directories
       directories = Argv.directories.sort
       directories.each do |directory|
-        Viewer.new.show_directory(directory)
-        Dir.chdir(directory)
-        Viewer.new.show_name(sort_and_reverse(look_up_dir))
+        @final_view.push("\n") unless @final_view.empty?
+        @final_view << "#{directory}:"
+        file_names = Dir.chdir(directory) { sort_and_reverse(look_up_dir) }
+        @final_view << Viewer.new.show_name(file_names)
       end
     end
 
     def generate_with_non_argv
       directory = Dir.pwd
-      Dir.chdir(directory)
-      Viewer.new.show_name(sort_and_reverse(look_up_dir))
+      file_names = Dir.chdir(directory) { sort_and_reverse(look_up_dir) }
+      @final_view << Viewer.new.show_name(file_names)
     end
 
     def sort_and_reverse(array)
@@ -110,18 +119,19 @@ module Ls
     def setup(directory)
       file_names = make_file_name_list(directory)
       make_instans(sort_and_reverse(file_names))
-      update_file_data
+      update_file_data(directory)
       max_file_size_digit
       max_file_nlink_digit
     end
 
-    def show_directory(directory)
-      puts
-      puts "#{directory}:"
-    end
-
     def finalize
       @file_details.map { |file_data| show_detail(file_data) }
+    end
+
+    def finalize_at_argv_directories(directory)
+      ary = @file_details.map { |file_data| show_detail(file_data) }
+      ary.unshift("total #{block_sum}")
+      ary.unshift("#{directory}:")
     end
 
     def block_sum
@@ -134,8 +144,7 @@ module Ls
       if directory == Argv.files
         Argv.files
       else
-        Dir.chdir(directory)
-        Argv.option[:all] ? Dir.glob('*', File::FNM_DOTMATCH) : Dir.glob('*')
+        Dir.chdir(directory) { Argv.option[:all] ? Dir.glob('*', File::FNM_DOTMATCH) : Dir.glob('*') }
       end
     end
 
@@ -143,8 +152,12 @@ module Ls
       file_names.map { |file| @file_details << FileData.new(file) }
     end
 
-    def update_file_data
-      @file_details.each(&:apend_info)
+    def update_file_data(directory)
+      if directory == Argv.files
+        @file_details.each(&:apend_info)
+      else
+        Dir.chdir(directory) { @file_details.each(&:apend_info) }
+      end
     end
 
     def show_detail(file_data)
